@@ -1,4 +1,6 @@
 const express = require('express')
+const mysql = require('mysql');
+
 const app = express()
 const port = 5000
 
@@ -322,14 +324,10 @@ let article1 = {
   ],
   label: [
     {
-      title: [{
-        title: "สิ่งที่คุณควรรู้ก่อนการส่องกล้องช่องท้องส่วนบน",
-      }],
-      label: [{
-        label: "หากคุณมีอาการปวดท้องส่วนบนอย่างต่อเนื่องตลอดจนความผิดปกติอื่น ๆ ในระบบทางเดินอาหาร คุณจะต้องเข้ารับการตรวจส่องกล้องส่วนบนเพื่อพิจารณา ประเมิน และรักษาปัญหาของคุณตั้งแต่ระยะเริ่มแรก เพื่อให้คุณฟื้นคุณภาพชีวิตได้ทันที"
-      }]
-    }
-  ],
+      title: "สิ่งที่คุณควรรู้ก่อนการส่องกล้องช่องท้องส่วนบน",
+      label: "หากคุณมีอาการปวดท้องส่วนบนอย่างต่อเนื่องตลอดจนความผิดปกติอื่น ๆ ในระบบทางเดินอาหาร คุณจะต้องเข้ารับการตรวจส่องกล้องส่วนบนเพื่อพิจารณา ประเมิน และรักษาปัญหาของคุณตั้งแต่ระยะเริ่มแรก เพื่อให้คุณฟื้นคุณภาพชีวิตได้ทันที"
+    }]
+  ,
   items: [
     {
       carouselURL: "https://storage.googleapis.com/nh-uat-corp/2024/6/update_branch_4_d4280ca512/update_branch_4_d4280ca512.png",
@@ -362,12 +360,8 @@ let article2 = {
   ],
   label: [
     {
-      title: [{
-        title: "สิ่งที่คุณควรรู้ก่อนการส่องกล้องช่องท้องส่วนบน",
-      }],
-      label: [{
-        label: "หากคุณมีอาการปวดท้องส่วนบนอย่างต่อเนื่องตลอดจนความผิดปกติอื่น ๆ ในระบบทางเดินอาหาร คุณจะต้องเข้ารับการตรวจส่องกล้องส่วนบนเพื่อพิจารณา ประเมิน และรักษาปัญหาของคุณตั้งแต่ระยะเริ่มแรก เพื่อให้คุณฟื้นคุณภาพชีวิตได้ทันที"
-      }]
+      title: "สิ่งที่คุณควรรู้ก่อนการส่องกล้องช่องท้องส่วนบน",
+      label: "หากคุณมีอาการปวดท้องส่วนบนอย่างต่อเนื่องตลอดจนความผิดปกติอื่น ๆ ในระบบทางเดินอาหาร คุณจะต้องเข้ารับการตรวจส่องกล้องส่วนบนเพื่อพิจารณา ประเมิน และรักษาปัญหาของคุณตั้งแต่ระยะเริ่มแรก เพื่อให้คุณฟื้นคุณภาพชีวิตได้ทันที"
     }
   ],
   items: [
@@ -505,10 +499,45 @@ app.get('/recommend', (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.json({ recommend });
 })
+const con = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  database: "test"
+});
 
-app.get('/health', (req, res) => {
+con.connect(function (err) {
+  if (err) {
+    console.error("CONNECTION ERROR :::", err)
+    return
+  }
+  console.log('CONNECTION Succcess')
+});
+app.get('/health', async (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
-  res.json({ health });
+  let cardFromDatabase = []
+  if (con.state === 'authenticated') {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        con.query("SELECT * FROM health_card", (err, result, fields) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(result)
+          }
+        })
+      })
+      cardFromDatabase = (result)
+    } catch (error) {
+      console.error("SQL QUERY ERROR :::: ", error)
+    }
+
+  }
+  res.json({
+    health: {
+      ...health,
+      card: cardFromDatabase
+    }
+  });
 })
 
 app.get('/review', (req, res) => {
@@ -523,7 +552,7 @@ app.get('/article1', (req, res) => {
 
 app.get('/article2', (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
-  res.json({article2})
+  res.json({ article2 })
 })
 
 app.get('/footer', (req, res) => {
@@ -531,6 +560,58 @@ app.get('/footer', (req, res) => {
   res.json({ items });
 })
 
+
+
+// const insertHealthCard = async (label, url, css) => {
+//   con.query("INSERT INTO `health_card` (`id`, `label`, `url`, `css`) VALUES (NULL, ?, ?, ?)", [label, url, css], (err, result) => {
+//     if (err) {
+//       console.log(err)
+//     } else {
+//       console.log("success")
+//     }
+//   })
+// }
+
+// app.post('/health/add', async (req, res) => {
+//   const label = req.body.label;
+//   const url = req.body.url;
+//   const css = req.body.css;
+
+//   if (con.state === 'authenticated') {
+//     try {
+//       await insertHealthCard(label, url, css)
+//     } catch (error) {
+//       console.log(error);
+//     }
+//   }
+// })
+
+
+
+app.post('/health/add', (req, res) => {
+  const label = req.body.label;
+  const url = req.body.url;
+  const css = req.body.css;
+
+  if (con.state === 'authenticated') {
+    try {
+      con.query("INSERT INTO `health_card` (`id`, `label`, `url`, `css`) VALUES (NULL, ?, ?, ?)", [label, url, css],(err,result) => {
+        if(err){
+          console.log(err)
+        } else {
+          console.log("success")
+        }
+      })
+    } catch (error) {
+      console.log(error);
+    }
+  }
+})
+
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
 })
+
+
+
