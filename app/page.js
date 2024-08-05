@@ -4,6 +4,9 @@ const mysql = require('mysql');
 const app = express()
 const port = 5000
 
+app.use(express.json()) // for parsing application/json
+app.use(express.urlencoded({ extended: true }))
+
 let nav = {
   img: [{
     logo: "https://storage.googleapis.com/nh-uat-corp/2024/6/thumbnail_update_N_Health_d5a05fd0a9/thumbnail_update_N_Health_d5a05fd0a9.png"
@@ -472,9 +475,6 @@ let items = [{
 }
 ];
 
-app.use(express.json()) // for parsing application/json
-app.use(express.urlencoded({ extended: true }))
-
 app.get('/nav', (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.json({ nav });
@@ -562,50 +562,45 @@ app.get('/footer', (req, res) => {
 
 
 
-// const insertHealthCard = async (label, url, css) => {
-//   con.query("INSERT INTO `health_card` (`id`, `label`, `url`, `css`) VALUES (NULL, ?, ?, ?)", [label, url, css], (err, result) => {
-//     if (err) {
-//       console.log(err)
-//     } else {
-//       console.log("success")
-//     }
-//   })
-// }
+const insertHealthCard = async (label, url, css) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  const result = await new Promise((resolve, reject) => {
+    con.query('INSERT INTO `health_card` (`id`, `label`, `url`, `css`) VALUES (NULL, ?, ?, ?)',
+      [label, url, css], (err, results) => {
+        if (err) {
+          console.log("ไม่ผ่าน")
+          reject(err)
+        } else {
+          resolve(results)
+          
+        }
+      })
+      console.log("1")
+  })
+  console.log("2")
+}
 
-// app.post('/health/add', async (req, res) => {
-//   const label = req.body.label;
-//   const url = req.body.url;
-//   const css = req.body.css;
+app.post('/health/add', async (req, res) => {
 
-//   if (con.state === 'authenticated') {
-//     try {
-//       await insertHealthCard(label, url, css)
-//     } catch (error) {
-//       console.log(error);
-//     }
-//   }
-// })
+  res.header("Access-Control-Allow-Origin", "*");
 
+  console.log(req.body)
 
-
-app.post('/health/add', (req, res) => {
   const label = req.body.label;
   const url = req.body.url;
   const css = req.body.css;
 
   if (con.state === 'authenticated') {
     try {
-      con.query("INSERT INTO `health_card` (`id`, `label`, `url`, `css`) VALUES (NULL, ?, ?, ?)", [label, url, css],(err,result) => {
-        if(err){
-          console.log(err)
-        } else {
-          console.log("success")
-        }
-      })
+      console.log("3")
+      const results = await insertHealthCard(label, url, css)
+      res.json(results)
     } catch (error) {
       console.log(error);
     }
+    console.log("4")
   }
+  console.log('5')
 })
 
 
