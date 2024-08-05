@@ -1,11 +1,23 @@
 const express = require('express')
 const mysql = require('mysql');
+const cors = require('cors');
 
 const app = express()
 const port = 5000
 
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  cresdentials:true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json()) // for parsing application/json
 app.use(express.urlencoded({ extended: true }))
+
+// app.use(function(req, res, next) {
+  // res.header("Access-Control-Allow-Origin", "*");
+  // res.header("Access-Control-Allow-Headers", "Origin, X-Requrested-With, Content-Type, Accept");
+// });
 
 let nav = {
   img: [{
@@ -476,27 +488,22 @@ let items = [{
 ];
 
 app.get('/nav', (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
   res.json({ nav });
 })
 
 app.get('/paragram', (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
   res.json({ paragram });
 })
 
 app.get('/vision', (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
   res.json({ vision });
 })
 
 app.get('/award', (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
   res.json({ award });
 })
 
 app.get('/recommend', (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
   res.json({ recommend });
 })
 const con = mysql.createConnection({
@@ -513,7 +520,6 @@ con.connect(function (err) {
   console.log('CONNECTION Succcess')
 });
 app.get('/health', async (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
   let cardFromDatabase = []
   if (con.state === 'authenticated') {
     try {
@@ -541,29 +547,24 @@ app.get('/health', async (req, res) => {
 })
 
 app.get('/review', (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
   res.json({ review });
 })
 
 app.get('/article1', (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
   res.json({ article1 });
 })
 
 app.get('/article2', (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
   res.json({ article2 })
 })
 
 app.get('/footer', (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
   res.json({ items });
 })
 
 
 
 const insertHealthCard = async (label, url, css) => {
-  res.header("Access-Control-Allow-Origin", "*");
   const result = await new Promise((resolve, reject) => {
     con.query('INSERT INTO `health_card` (`id`, `label`, `url`, `css`) VALUES (NULL, ?, ?, ?)',
       [label, url, css], (err, results) => {
@@ -572,7 +573,6 @@ const insertHealthCard = async (label, url, css) => {
           reject(err)
         } else {
           resolve(results)
-          
         }
       })
       console.log("1")
@@ -582,9 +582,9 @@ const insertHealthCard = async (label, url, css) => {
 
 app.post('/health/add', async (req, res) => {
 
-  res.header("Access-Control-Allow-Origin", "*");
-
   console.log(req.body)
+
+  // res.json("fin")
 
   const label = req.body.label;
   const url = req.body.url;
