@@ -7,16 +7,30 @@ const port = 5000
 
 const corsOptions = {
   origin: 'http://localhost:3000',
-  cresdentials:true,
+  cresdentials: true,
 };
 
 app.use(cors(corsOptions));
 app.use(express.json()) // for parsing application/json
 app.use(express.urlencoded({ extended: true }))
 
+const con = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  database: "test"
+});
+
+con.connect(function (err) {
+  if (err) {
+    console.error("CONNECTION ERROR :::", err)
+    return
+  }
+  console.log('CONNECTION Succcess')
+});
+
 // app.use(function(req, res, next) {
-  // res.header("Access-Control-Allow-Origin", "*");
-  // res.header("Access-Control-Allow-Headers", "Origin, X-Requrested-With, Content-Type, Accept");
+// res.header("Access-Control-Allow-Origin", "*");
+// res.header("Access-Control-Allow-Headers", "Origin, X-Requrested-With, Content-Type, Accept");
 // });
 
 let nav = {
@@ -140,12 +154,11 @@ let paragram =
   ]
 
 let vision = {
-  label: [
-    {
-      title: "วิสัยทัศน์",
-      label: "ด้วยความมุ่งมั่นสู่การเป็นผู้นำในธุรกิจ <br /> ผลิตภัณฑ์ และบริการสุขภาพในอาเซียน"
-    }
-  ],
+  label: [{
+    title: "วิสัยทัศน์",
+    label: "ด้วยความมุ่งมั่นสู่การเป็นผู้นำในธุรกิจ <br /> ผลิตภัณฑ์ และบริการสุขภาพในอาเซียน"
+  }]
+  ,
   items: [
     {
       cardIcon: "https://storage.googleapis.com/nh-uat-corp/2024/6/thumbnail_update_icon_1_3654c124f0/thumbnail_update_icon_1_3654c124f0.png",
@@ -199,6 +212,7 @@ let vision = {
     }
   ]
 }
+
 
 let award = [{
   label: [
@@ -495,8 +509,34 @@ app.get('/paragram', (req, res) => {
   res.json({ paragram });
 })
 
-app.get('/vision', (req, res) => {
-  res.json({ vision });
+app.get('/vision', async (req, res) => {
+
+  let itemsFromDatabase = []
+  if (con.state === 'authenticated') {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        con.query("SELECT * FROM vision_card", (err, result, fields) => {
+          if (err) {
+            reject(err)
+          } else {
+            resolve(result)
+          }
+        })
+      })
+      itemsFromDatabase = (result)
+    } catch (error) {
+      console.log("SQL QUERY ERROR :::::::: ", error)
+    }
+  }
+
+  res.json({
+    vision: {
+      ...vision,
+      items: itemsFromDatabase
+    }
+  });
+
+  // res.json({ vision });
 })
 
 app.get('/award', (req, res) => {
@@ -506,19 +546,7 @@ app.get('/award', (req, res) => {
 app.get('/recommend', (req, res) => {
   res.json({ recommend });
 })
-const con = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  database: "test"
-});
 
-con.connect(function (err) {
-  if (err) {
-    console.error("CONNECTION ERROR :::", err)
-    return
-  }
-  console.log('CONNECTION Succcess')
-});
 app.get('/health', async (req, res) => {
   let cardFromDatabase = []
   if (con.state === 'authenticated') {
@@ -545,6 +573,8 @@ app.get('/health', async (req, res) => {
     }
   });
 })
+
+
 
 app.get('/review', (req, res) => {
   res.json({ review });
@@ -575,7 +605,7 @@ const insertHealthCard = async (label, url, css) => {
           resolve(results)
         }
       })
-      console.log("1")
+    console.log("1")
   })
   console.log("2")
 }
@@ -603,6 +633,38 @@ app.post('/health/add', async (req, res) => {
   console.log('5')
 })
 
+
+const insertVisionCard = async (cI, imgH, cT) => {
+  const result = await new Promise((resolve, reject) => {
+    con.query('INSERT INTO `vision_card` (`id`,`card_icon`,`image_hover`,`card_title`) VALUES (NULL,?,?,?)',
+      [cI, imgH, cT], (err, results) => {
+        if (err) {
+          console.log("ไม่ผ่าน")
+          reject(err)
+        } else {
+          resolve(results)
+        }
+      }
+    )
+  })
+}
+
+app.post('/vision/add', async (req, res) => {
+  console.log(req.body)
+
+  const cI = req.body.cI;
+  const imgH = req.body.imgH;
+  const cT = req.body.cT;
+
+  if (con.state === 'authenticated') {
+    try {
+      const results = await insertVisionCard(cI, imgH, cT)
+      res.json(results)
+    } catch (error) {
+      console.log(error);
+    }
+  }
+})
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`)
